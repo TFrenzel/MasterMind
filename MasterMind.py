@@ -11,27 +11,31 @@ are present in the code but incorrect location.
 
 '''
 from random import randint
+import sys
 
 MAXSIZE = 4
-MAXDIGIT = 9
+MAXDIGIT = 3
 
-def match(guess, solution):
+def match(guess, prevGuess):
     exact = 0
-    inexact = 0      
+    inexact = 0
+    matchIndex = []
+    indirectMatches = []
+   
+    #print "My new Guess: " + ''.join(str(num) for num in guess)
+    #print "My old Guess "+''.join(str(num) for num in prevGuess)
+         
     for x in range(MAXSIZE):
-        if guess[x] == solution[x]:
-            guess[x] = '*'
-            solution[x] = '*'
+        if guess[x] == prevGuess[x]:
+            matchIndex.append(x)
             exact+=1          
     
     for i in range(MAXSIZE):
         for x in range(MAXSIZE):
-            if guess[i] == solution[x] and guess[i] !='*':
-                print guess
-                guess[i] = '*'
-                solution[x] = '*'
+            if guess[i] == prevGuess[x] and x not in matchIndex and guess[i] not in indirectMatches:#guess[i] !='*':
+                indirectMatches.append(guess[i])
                 inexact+=1
-                
+    #print "result of Match: exact %r inexact %r" % (exact,inexact)            
     return (exact, inexact)
         
 
@@ -45,24 +49,57 @@ def genSolutionPool():
                     solutionPool.append(code)
     return solutionPool     
 
+def removeSolutions(solutions, prevGuess, stats):
+    print len(solutions)
+    newSolutionSet = []
+    count = 0
+    for x in range(len(solutions)):
+        newStats = match(solutions[x], prevGuess)
+        
+        if newStats[0] > stats[0] and newStats[0] != 0:
+            #print "New Stats %r%r" % newStats
+            #print "Old Stats %r%r" % stats
+            newSolutionSet.append(solutions[x])
+            print solutions[x]
+            
+        elif newStats[1] >= stats[1]:
+            newSolutionSet.append(solutions[x])
+            print solutions[x]
+
+        count += 1
+    print count    
+    return newSolutionSet
 
 
 def run():
     solutions = genSolutionPool()
-    initialGuess = [randint(0,9), randint(0,9), randint(0,9), randint(0,9)]
+    guess = [randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1)]
+    guesses = []
+    guesses.append(guess)
+    solutions.remove(guess)
     gameOver = False
+    answer = raw_input("Is your number " + ''.join(str(num) for num in guess)+" ?\n")
+    if(answer.lower() !="yes"):
+        exact = int(raw_input("How many are exact matches?\n"))
+        inexact = int(raw_input("How many are inexact matches?\n"))
+        print "1st guess " +''.join(str(num) for num in guess)
+        solutions = removeSolutions(solutions, guess, (exact, inexact))
+        
+        #print solutions
+        #sys.exit(1)
+    else: gameOver = True
     
-    answer = raw_input("Is your number " + ''.join(str(num) for num in initialGuess)+" ?\n")
-    if answer.lower() is "yes":
-        gameOver = True
-        print "Great! Thanks for playing!" 
-    else: 
-        exact = raw_input("How many digits are exact matches?\n")
-        inexact = raw_input("How many digits are present but in the wrong spot?\n") 
-    while not gameOver: 
-       raw_input()
+    while not gameOver:
+        guess = solutions[randint(0, len(solutions)-1)]
+        raw_input("Is your number " + ''.join(str(num) for num in guess))  
+        exact = int(raw_input("How many are exact matches?\n"))
+        inexact = int(raw_input("How many are inexact matches?\n"))
+        if exact == 4: gameOver = True
+        else: solutions = removeSolutions(solutions, guess, (exact, inexact))
+      
+    print "Thanks for playing!!"
+    sys.exit(1)
     
-    return
 
 if __name__ == '__main__':
     print "Welcome to the Game of Mastermind"
