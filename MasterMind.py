@@ -14,16 +14,18 @@ from random import randint
 import sys
 
 MAXSIZE = 4
-MAXDIGIT = 3
+MAXDIGIT = 6
+EXACT = 0 ##location in tuples of exact matches
+INEXACT = 1 ##location in tuples of inexact matches
+
+bestGuess = [0, 0, []]
+
 
 def match(guess, prevGuess):
     exact = 0
     inexact = 0
     matchIndex = []
     indirectMatches = []
-   
-    #print "My new Guess: " + ''.join(str(num) for num in guess)
-    #print "My old Guess "+''.join(str(num) for num in prevGuess)
          
     for x in range(MAXSIZE):
         if guess[x] == prevGuess[x]:
@@ -50,52 +52,68 @@ def genSolutionPool():
     return solutionPool     
 
 def removeSolutions(solutions, prevGuess, stats):
-    print len(solutions)
+    ##For Testing
+    print len(solutions) 
+    
+    global bestGuess
     newSolutionSet = []
-    count = 0
+    solutions.remove(prevGuess)
+    
+    if stats[EXACT] > bestGuess[EXACT]:
+        bestGuess = (stats[EXACT], stats[INEXACT], prevGuess)
+    elif stats[EXACT] == bestGuess[EXACT] and stats[INEXACT] > bestGuess[INEXACT]:
+        bestGuess = (stats[EXACT], stats[INEXACT], prevGuess)
+   
+    
     for x in range(len(solutions)):
-        newStats = match(solutions[x], prevGuess)
+        print solutions[x]
+        newStats = match(solutions[x], bestGuess[2])
         
-        if newStats[0] > stats[0] and newStats[0] != 0:
-            #print "New Stats %r%r" % newStats
-            #print "Old Stats %r%r" % stats
+        ##We want all codes that have similar number of matches to our best guess
+        if newStats[EXACT]+newStats[INEXACT] >= bestGuess[EXACT]+bestGuess[INEXACT]:
+            ##We only want solutions potentially as good as our current best
             newSolutionSet.append(solutions[x])
-            print solutions[x]
-            
-        elif newStats[1] >= stats[1]:
+        elif bestGuess[EXACT]+bestGuess[INEXACT]==0 and newStats[EXACT]+newStats[INEXACT]==0 :
             newSolutionSet.append(solutions[x])
-            print solutions[x]
 
-        count += 1
-    print count    
+        '''
+        TODO: If we have a truly bad guess we should eliminate any answer similar to it
+        '''
+        
+    print len(newSolutionSet)    
     return newSolutionSet
 
 
 def run():
     solutions = genSolutionPool()
     guess = [randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1), randint(0,MAXDIGIT-1)]
-    guesses = []
-    guesses.append(guess)
-    solutions.remove(guess)
+    global bestGuess
     gameOver = False
     answer = raw_input("Is your number " + ''.join(str(num) for num in guess)+" ?\n")
     if(answer.lower() !="yes"):
         exact = int(raw_input("How many are exact matches?\n"))
         inexact = int(raw_input("How many are inexact matches?\n"))
+        bestGuess = [exact, inexact, guess] ##Our first is our best so far.
         print "1st guess " +''.join(str(num) for num in guess)
         solutions = removeSolutions(solutions, guess, (exact, inexact))
-        
-        #print solutions
-        #sys.exit(1)
+
     else: gameOver = True
     
     while not gameOver:
-        guess = solutions[randint(0, len(solutions)-1)]
-        raw_input("Is your number " + ''.join(str(num) for num in guess))  
-        exact = int(raw_input("How many are exact matches?\n"))
-        inexact = int(raw_input("How many are inexact matches?\n"))
+        if len(solutions)!=1:
+            guess = solutions[randint(0, len(solutions)-1)]
+            raw_input("Is your number " + ''.join(str(num) for num in guess)+"?\n")  
+            exact = int(raw_input("How many are exact matches?\n"))
+            inexact = int(raw_input("How many are inexact matches?\n"))
+            solutions = removeSolutions(solutions, guess, (exact, inexact))
+        else: 
+            gameOver = True
+            print "Your code is:"
+            print solutions
+            print "Thanks for playing!!"
+            sys.exit(1)
         if exact == 4: gameOver = True
-        else: solutions = removeSolutions(solutions, guess, (exact, inexact))
+        
       
     print "Thanks for playing!!"
     sys.exit(1)
@@ -105,5 +123,6 @@ if __name__ == '__main__':
     print "Welcome to the Game of Mastermind"
     print "Think of a 4 digit code for me to guess."
     run()
+   
 
 
